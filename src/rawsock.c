@@ -353,14 +353,18 @@ int rawsock_recv_packet(
                         &hdr,
                         0   /* return immediately */
                         );
-        if (err == PF_RING_ERROR_NO_PKT_AVAILABLE || hdr.caplen == 0) {
+        // see https://github.com/ntop/PF_RING/blob/60bc9b10b2721631d9d9453c7775213fa61d7637/userland/lib/pfring.h#L497
+        // for the list of returned values
+
+        if (err == -1)
+            return 1;
+
+        if (err == 0 || hdr.caplen == 0) {
             PFRING.poll(adapter->ring, 1);
             if (is_tx_done)
                 return 1;
             goto again;
         }
-        if (err)
-            return 1;
 
         *length = hdr.caplen;
         *secs = (unsigned)hdr.ts.tv_sec;
